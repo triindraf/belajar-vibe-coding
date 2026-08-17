@@ -60,4 +60,40 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
         password: t.String(),
       }),
     }
-  );
+  )
+  .get("/current", async ({ headers, set }) => {
+    try {
+      const authorization = headers["authorization"];
+      if (!authorization || !authorization.startsWith("Bearer ")) {
+        set.status = 401;
+        return {
+          error: "Unauthorized",
+        };
+      }
+
+      const token = authorization.slice(7).trim();
+      if (!token) {
+        set.status = 401;
+        return {
+          error: "Unauthorized",
+        };
+      }
+
+      const user = await UsersService.getCurrentUser(token);
+      return {
+        data: user,
+      };
+    } catch (error: any) {
+      if (error?.message === "Unauthorized") {
+        set.status = 401;
+        return {
+          error: "Unauthorized",
+        };
+      }
+
+      set.status = 500;
+      return {
+        error: error?.message || "Terjadi kesalahan pada server",
+      };
+    }
+  });

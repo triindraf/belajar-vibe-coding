@@ -122,4 +122,68 @@ describe("Users API", () => {
       expect(response.status).toBe(422);
     });
   });
+
+  describe("GET /api/users/current (Get Current User)", () => {
+    it("successfully returns current user data when valid token is provided", async () => {
+      const mockUser = {
+        id: 1,
+        name: "tri",
+        email: "tri@localhost",
+        createdAt: new Date("2026-08-17T10:00:00.000Z"),
+      };
+
+      spyOn(UsersService, "getCurrentUser").mockResolvedValueOnce(mockUser as any);
+
+      const response = await app.handle(
+        new Request("http://localhost/api/users/current", {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer 123e4567-e89b-12d3-a456-426614174000",
+          },
+        })
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toEqual({
+        data: {
+          id: 1,
+          name: "tri",
+          email: "tri@localhost",
+          createdAt: "2026-08-17T10:00:00.000Z",
+        },
+      });
+    });
+
+    it("returns 401 Unauthorized when authorization header is missing", async () => {
+      const response = await app.handle(
+        new Request("http://localhost/api/users/current", {
+          method: "GET",
+        })
+      );
+
+      expect(response.status).toBe(401);
+      const body = await response.json();
+      expect(body).toEqual({ error: "Unauthorized" });
+    });
+
+    it("returns 401 Unauthorized when token is invalid or not found", async () => {
+      spyOn(UsersService, "getCurrentUser").mockRejectedValueOnce(
+        new Error("Unauthorized")
+      );
+
+      const response = await app.handle(
+        new Request("http://localhost/api/users/current", {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer invalid-token",
+          },
+        })
+      );
+
+      expect(response.status).toBe(401);
+      const body = await response.json();
+      expect(body).toEqual({ error: "Unauthorized" });
+    });
+  });
 });
