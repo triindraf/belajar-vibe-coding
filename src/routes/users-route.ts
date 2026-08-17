@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import { authMiddleware } from "../middleware/auth-middleware";
 import { UsersService } from "../services/users-service";
 
 export const usersRoute = new Elysia({ prefix: "/api/users" })
@@ -61,75 +62,58 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
       }),
     }
   )
-  .get("/current", async ({ headers, set }) => {
-    try {
-      const authorization = headers["authorization"];
-      if (!authorization || !authorization.startsWith("Bearer ")) {
-        set.status = 401;
-        return {
-          error: "Unauthorized",
-        };
-      }
+  .use(authMiddleware)
+  .guard(
+    {
+      beforeHandle({ token, set }) {
+        if (!token) {
+          set.status = 401;
+          return {
+            error: "Unauthorized",
+          };
+        }
+      },
+    },
+    (app) =>
+      app
+        .get("/current", async ({ token, set }) => {
+          try {
+            const user = await UsersService.getCurrentUser(token!);
+            return {
+              data: user,
+            };
+          } catch (error: any) {
+            if (error?.message === "Unauthorized") {
+              set.status = 401;
+              return {
+                error: "Unauthorized",
+              };
+            }
 
-      const token = authorization.slice(7).trim();
-      if (!token) {
-        set.status = 401;
-        return {
-          error: "Unauthorized",
-        };
-      }
+            set.status = 500;
+            return {
+              error: error?.message || "Terjadi kesalahan pada server",
+            };
+          }
+        })
+        .delete("/logout", async ({ token, set }) => {
+          try {
+            await UsersService.logout(token!);
+            return {
+              data: "OK",
+            };
+          } catch (error: any) {
+            if (error?.message === "Unauthorized") {
+              set.status = 401;
+              return {
+                error: "Unauthorized",
+              };
+            }
 
-      const user = await UsersService.getCurrentUser(token);
-      return {
-        data: user,
-      };
-    } catch (error: any) {
-      if (error?.message === "Unauthorized") {
-        set.status = 401;
-        return {
-          error: "Unauthorized",
-        };
-      }
-
-      set.status = 500;
-      return {
-        error: error?.message || "Terjadi kesalahan pada server",
-      };
-    }
-  })
-  .delete("/logout", async ({ headers, set }) => {
-    try {
-      const authorization = headers["authorization"];
-      if (!authorization || !authorization.startsWith("Bearer ")) {
-        set.status = 401;
-        return {
-          error: "Unauthorized",
-        };
-      }
-
-      const token = authorization.slice(7).trim();
-      if (!token) {
-        set.status = 401;
-        return {
-          error: "Unauthorized",
-        };
-      }
-
-      await UsersService.logout(token);
-      return {
-        data: "OK",
-      };
-    } catch (error: any) {
-      if (error?.message === "Unauthorized") {
-        set.status = 401;
-        return {
-          error: "Unauthorized",
-        };
-      }
-
-      set.status = 500;
-      return {
-        error: error?.message || "Terjadi kesalahan pada server",
-      };
-    }
-  });
+            set.status = 500;
+            return {
+              error: error?.message || "Terjadi kesalahan pada server",
+            };
+          }
+        })
+  );
