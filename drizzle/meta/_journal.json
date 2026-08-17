@@ -15,6 +15,13 @@
       "when": 1786938581113,
       "tag": "0001_slippery_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786941478698,
+      "tag": "0002_high_nightcrawler",
+      "breakpoints": true
     }
   ]
 }
