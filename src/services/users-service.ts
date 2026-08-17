@@ -74,4 +74,25 @@ export class UsersService {
 
     return { token };
   }
+
+  static async getCurrentUser(token: string) {
+    // Join session and users table to find active user by session token
+    const result = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        createdAt: users.createdAt,
+      })
+      .from(session)
+      .innerJoin(users, eq(session.userId, users.id))
+      .where(eq(session.token, token))
+      .limit(1);
+
+    if (result.length === 0) {
+      throw new Error("Unauthorized");
+    }
+
+    return result[0];
+  }
 }
