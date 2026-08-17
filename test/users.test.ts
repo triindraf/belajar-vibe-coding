@@ -186,4 +186,54 @@ describe("Users API", () => {
       expect(body).toEqual({ error: "Unauthorized" });
     });
   });
+
+  describe("DELETE /api/users/logout (Logout)", () => {
+    it("successfully logs out user and returns { data: 'OK' }", async () => {
+      spyOn(UsersService, "logout").mockResolvedValueOnce({ success: true } as any);
+
+      const response = await app.handle(
+        new Request("http://localhost/api/users/logout", {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer 123e4567-e89b-12d3-a456-426614174000",
+          },
+        })
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toEqual({ data: "OK" });
+    });
+
+    it("returns 401 Unauthorized when authorization header is missing", async () => {
+      const response = await app.handle(
+        new Request("http://localhost/api/users/logout", {
+          method: "DELETE",
+        })
+      );
+
+      expect(response.status).toBe(401);
+      const body = await response.json();
+      expect(body).toEqual({ error: "Unauthorized" });
+    });
+
+    it("returns 401 Unauthorized when token is invalid or not found", async () => {
+      spyOn(UsersService, "logout").mockRejectedValueOnce(
+        new Error("Unauthorized")
+      );
+
+      const response = await app.handle(
+        new Request("http://localhost/api/users/logout", {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer invalid-token",
+          },
+        })
+      );
+
+      expect(response.status).toBe(401);
+      const body = await response.json();
+      expect(body).toEqual({ error: "Unauthorized" });
+    });
+  });
 });
